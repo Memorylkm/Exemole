@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Petit Nid</string>
+    <string name="title_activity_main">Petit Nid</string>
+    <string name="package_name">fr.petitnid.creche</string>
+    <string name="custom_url_scheme">fr.petitnid.creche</string>
+</resources>

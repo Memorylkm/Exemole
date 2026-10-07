@@ -1,0 +1,8 @@
+{
+  "appId": "fr.petitnid.creche",
+  "appName": "Petit Nid",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#f5f6fa"
+  }
+}

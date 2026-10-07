@@ -1,0 +1,83 @@
+name: Android APK (Petit Nid)
+
+on:
+  push:
+    paths:
+      - 'creche-android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: creche-android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: creche-android/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Installer et synchroniser
+        run: |
+          npm ci
+          npx cap sync android
+
+      # Optionnel (Play Store) : secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+      # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD. Sans eux : clé fixe du dépôt (installation directe).
+      - name: Clé de signature
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Construire APK + AAB
+        working-directory: creche-android/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease -PversionCode=${{ github.run_number }} -PversionName=1.0.${{ github.run_number }}
+          mkdir -p ../out
+          cp app/build/outputs/apk/release/app-release.apk ../out/PetitNid.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../out/PetitNid.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PetitNid-android-${{ github.run_number }}
+          path: creche-android/out/*
+
+      - name: Publier (lien de téléchargement direct)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: Petit Nid — Android (dernière version)
+          prerelease: true
+          make_latest: false
+          body: |
+            Version 1.0.${{ github.run_number }} — commit ${{ github.sha }}
+            📱 Sur le téléphone : télécharger **PetitNid.apk**, l'ouvrir, autoriser « sources inconnues », installer.
+            🏪 Play Store : utiliser **PetitNid.aab**.
+          files: |
+            creche-android/out/PetitNid.apk
+            creche-android/out/PetitNid.aab
