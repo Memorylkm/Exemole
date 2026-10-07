@@ -31,7 +31,7 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
+      # Le SDK Android est déjà installé sur les runners ubuntu-latest (ANDROID_HOME)
 
       - name: Installer et synchroniser
         run: |
